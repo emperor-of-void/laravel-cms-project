@@ -23,6 +23,8 @@ class CourseRequest extends FormRequest
             'title'       => 'required|string|max:255',
             'price'       => 'required|numeric|min:0.01', // Yêu cầu giá > 0
             'description' => 'required',
+            'category_id' => 'nullable|exists:categories,id',
+            'tags'        => 'nullable|string',
             'image'       => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Yêu cầu upload ảnh
             'status'      => 'required|in:draft,published',
         ];

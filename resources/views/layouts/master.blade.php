@@ -45,6 +45,16 @@
             font-weight: bold;
         }
 
+        .badge-pink-light {
+            background-color: var(--cms-pink-light) !important;
+            color: var(--cms-pink-text) !important;
+            font-weight: 600;
+        }
+
+        .border-pink {
+            border-color: var(--cms-pink-text) !important;
+        }
+
         /* NÚT BẤM */
         .btn-primary { background-color: var(--cms-pink-main) !important; border-color: var(--cms-pink-main) !important; border-radius: 10px; color: #fff !important; }
         .btn-primary:hover { background-color: var(--cms-pink-hover) !important; border-color: var(--cms-pink-hover) !important; }
@@ -56,6 +66,9 @@
         /* FORM */
         .form-control:focus, .form-select:focus { border-color: var(--cms-pink-main); box-shadow: 0 0 0 0.25rem rgba(255, 117, 140, 0.25); }
         h2 { color: var(--cms-pink-text); font-weight: 800; }
+        .text-pink { color: var(--cms-pink-text) !important; }
+        .text-pink-text { color: var(--cms-pink-text) !important; }
+        .text-pink-light { color: var(--cms-pink-light) !important; }
     </style>
 </head>
 <body>
@@ -65,13 +78,38 @@
                 <div class="brand-logo"><i class="fa-solid fa-heart fa-beat text-white me-2"></i>CMS ADMIN</div>
             </div>
             <ul class="nav flex-column gap-1">
-                <li class="nav-item"><a href="{{ route('dashboard') }}" class="nav-link custom-link {{ request()->is('/') ? 'active-pink' : '' }}"><i class="fa-solid fa-chart-pie me-2"></i>Dashboard</a></li>
-                <li class="nav-item"><a href="{{ route('courses.index') }}" class="nav-link custom-link {{ request()->is('courses*') ? 'active-pink' : '' }}"><i class="fa-solid fa-book-open me-2"></i>Khóa học</a></li>
-                <li class="nav-item"><a href="{{ route('lessons.index') }}" class="nav-link custom-link {{ request()->is('lessons*') ? 'active-pink' : '' }}"><i class="fa-solid fa-play-circle me-2"></i>Bài học</a></li>
-                <li class="nav-item"><a href="{{ route('enrollments.index') }}" class="nav-link custom-link {{ request()->is('enrollments*') ? 'active-pink' : '' }}"><i class="fa-solid fa-users me-2"></i>Học viên Đăng ký</a></li>
+                @auth
+                    @if(auth()->user()->isAdmin())
+                        <li class="nav-item"><a href="{{ route('dashboard') }}" class="nav-link custom-link {{ request()->is('/') ? 'active-pink' : '' }}"><i class="fa-solid fa-chart-pie me-2"></i>Dashboard</a></li>
+                        <li class="nav-item"><a href="{{ route('courses.index') }}" class="nav-link custom-link {{ request()->is('courses*') ? 'active-pink' : '' }}"><i class="fa-solid fa-book-open me-2"></i>Khóa học</a></li>
+                        <li class="nav-item"><a href="{{ route('lessons.index') }}" class="nav-link custom-link {{ request()->is('lessons*') ? 'active-pink' : '' }}"><i class="fa-solid fa-play-circle me-2"></i>Bài học</a></li>
+                        <li class="nav-item"><a href="{{ route('enrollments.index') }}" class="nav-link custom-link {{ request()->is('enrollments*') ? 'active-pink' : '' }}"><i class="fa-solid fa-users me-2"></i>Học viên Đăng ký</a></li>
+                    @else
+                        <li class="nav-item"><a href="{{ route('catalog.index') }}" class="nav-link custom-link {{ request()->is('catalog*') ? 'active-pink' : '' }}"><i class="fa-solid fa-book-open me-2"></i>Khóa học</a></li>
+                        <li class="nav-item"><a href="{{ route('student.courses') }}" class="nav-link custom-link {{ request()->is('student/courses*') ? 'active-pink' : '' }}"><i class="fa-solid fa-graduation-cap me-2"></i>Khóa của tôi</a></li>
+                    @endif
+                @endauth
+                @guest
+                    <li class="nav-item"><a href="{{ route('catalog.index') }}" class="nav-link custom-link {{ request()->is('catalog*') ? 'active-pink' : '' }}"><i class="fa-solid fa-book-open me-2"></i>Khóa học</a></li>
+                @endguest
             </ul>
         </div>
         <div class="p-4 w-100">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div></div>
+                <div class="text-end">
+                    @auth
+                        <div class="text-secondary mb-2">Xin chào, <strong>{{ auth()->user()->name }}</strong></div>
+                        <form action="{{ route('logout') }}" method="POST" class="d-inline">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-dark">Đăng xuất</button>
+                        </form>
+                    @else
+                        <a href="{{ route('login') }}" class="btn btn-sm btn-light text-dark me-2">Đăng nhập</a>
+                        <a href="{{ route('register') }}" class="btn btn-sm btn-secondary">Đăng ký</a>
+                    @endauth
+                </div>
+            </div>
             @yield('content')
         </div>
     </div>

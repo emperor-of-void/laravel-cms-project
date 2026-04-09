@@ -10,13 +10,23 @@ class Course extends Model
     use SoftDeletes; // Yêu cầu 5: Sử dụng Soft Delete
 
     protected $fillable = [
-        'title', 'slug', 'price', 'description', 'image', 'status'
+        'title', 'slug', 'price', 'description', 'image', 'status', 'category_id'
     ];
 
     // Quan hệ 1-N: 1 Khóa học có nhiều Bài học
     public function lessons()
     {
         return $this->hasMany(Lesson::class)->orderBy('order');
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function tags()
+    {
+        return $this->belongsToMany(Tag::class, 'course_tag')->withTimestamps();
     }
 
     // Quan hệ 1-N: 1 Khóa học có nhiều Đăng ký

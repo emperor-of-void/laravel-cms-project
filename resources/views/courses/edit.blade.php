@@ -28,6 +28,24 @@
                 </div>
 
                 <div class="mb-3">
+                    <label class="form-label">Danh mục</label>
+                    <select name="category_id" class="form-control @error('category_id') is-invalid @enderror">
+                        <option value="">-- Chọn danh mục --</option>
+                        @foreach($categories as $category)
+                            <option value="{{ $category->id }}" {{ old('category_id', $course->category_id) == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
+                        @endforeach
+                    </select>
+                    @error('category_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Tags</label>
+                    <input type="text" name="tags" class="form-control @error('tags') is-invalid @enderror" value="{{ old('tags', $course->tags->pluck('name')->join(', ')) }}" placeholder="Laravel, PHP, Backend">
+                    <small class="text-muted">Nhập tags cách nhau bằng dấu phẩy.</small>
+                    @error('tags') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+
+                <div class="mb-3">
                     <label class="form-label">Trạng thái</label>
                     <select name="status" class="form-control @error('status') is-invalid @enderror">
                         <option value="draft" {{ old('status', $course->status) == 'draft' ? 'selected' : '' }}>Draft (Bản nháp)</option>

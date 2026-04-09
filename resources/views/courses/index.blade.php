@@ -15,17 +15,21 @@
     <div class="card mb-4 border-0">
         <div class="card-body pb-0">
             <form action="{{ route('courses.index') }}" method="GET" class="row g-3 mb-3">
-                <div class="col-md-5">
+                <div class="col-md-4">
                     <input type="text" name="search_title" class="form-control rounded-pill px-3" placeholder="Tìm theo tên..." value="{{ request('search_title') }}">
                 </div>
-                <div class="col-md-4">
-                    <select name="search_status" class="form-select rounded-pill px-3">
-                        <option value="">-- Tất cả trạng thái --</option>
-                        <option value="published" {{ request('search_status') == 'published' ? 'selected' : '' }}>Published</option>
-                        <option value="draft" {{ request('search_status') == 'draft' ? 'selected' : '' }}>Draft</option>
+                <div class="col-md-3">
+                    <select name="search_category" class="form-select rounded-pill px-3">
+                        <option value="">-- Theo danh mục --</option>
+                        @foreach($categories as $category)
+                            <option value="{{ $category->id }}" {{ request('search_category') == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
+                        @endforeach
                     </select>
                 </div>
                 <div class="col-md-3">
+                    <input type="text" name="search_tag" class="form-control rounded-pill px-3" placeholder="Filter tag..." value="{{ request('search_tag') }}">
+                </div>
+                <div class="col-md-2">
                     <button type="submit" class="btn btn-dark w-100 rounded-pill"><i class="fa-solid fa-magnifying-glass me-2"></i>Tìm kiếm</button>
                 </div>
             </form>
@@ -40,6 +44,8 @@
                     <tr>
                         <th class="py-3 px-4">Ảnh</th>
                         <th class="py-3">Tên Khóa Học</th>
+                        <th class="py-3">Danh mục</th>
+                        <th class="py-3">Tag</th>
                         <th class="py-3">Giá</th>
                         <th class="py-3">Trạng thái</th>
                         <th class="py-3 text-center">Số Bài Học</th>
@@ -57,6 +63,12 @@
                             @endif
                         </td>
                         <td class="fw-bold align-middle text-secondary">{{ $course->title }}</td>
+                        <td class="align-middle">{{ $course->category?->name ?? 'Chưa chọn' }}</td>
+                        <td class="align-middle">
+                            @foreach($course->tags as $tag)
+                                <span class="badge badge-pink-light border border-pink text-uppercase me-1">{{ $tag->name }}</span>
+                            @endforeach
+                        </td>
                         <td class="text-danger fw-bold align-middle">{{ number_format($course->price) }}đ</td>
                         <td class="align-middle">
                             <span class="badge {{ $course->status == 'published' ? 'badge-pink' : 'bg-secondary' }} px-3 py-2 rounded-pill">
@@ -73,7 +85,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="6" class="text-center py-4 text-muted">Không có khóa học nào.</td></tr>
+                    <tr><td colspan="8" class="text-center py-4 text-muted">Không có khóa học nào.</td></tr>
                     @endforelse
                 </tbody>
             </table>

@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('lessons', function (Blueprint $table) {
-            $table->softDeletes(); // Thêm cột deleted_at để xóa mềm
-        });
+        if (! Schema::hasColumn('lessons', 'deleted_at')) {
+            Schema::table('lessons', function (Blueprint $table) {
+                $table->softDeletes(); // Thêm cột deleted_at để xóa mềm
+            });
+        }
     }
 
     /**
@@ -21,8 +23,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('lessons', function (Blueprint $table) {
-            $table->dropSoftDeletes();
-        });
+        if (Schema::hasColumn('lessons', 'deleted_at')) {
+            Schema::table('lessons', function (Blueprint $table) {
+                $table->dropSoftDeletes();
+            });
+        }
     }
 };

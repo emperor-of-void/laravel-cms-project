@@ -21,15 +21,21 @@
                     </select>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Tên học viên</label>
-                    <input type="text" name="name" class="form-control" required>
-                </div>
+                @if(isset($currentUser) && $currentUser->isStudent())
+                    <div class="alert alert-info">
+                        Bạn đang đăng ký bằng tài khoản: <strong>{{ $currentUser->name }}</strong> ({{ $currentUser->email }})
+                    </div>
+                @else
+                    <div class="mb-3">
+                        <label class="form-label">Tên học viên</label>
+                        <input type="text" name="name" class="form-control" value="{{ old('name') }}" required>
+                    </div>
 
-                <div class="mb-4">
-                    <label class="form-label">Email học viên</label>
-                    <input type="email" name="email" class="form-control" required>
-                </div>
+                    <div class="mb-4">
+                        <label class="form-label">Email học viên</label>
+                        <input type="email" name="email" class="form-control" value="{{ old('email') }}" required>
+                    </div>
+                @endif
 
                 <button type="submit" class="btn btn-primary px-4">Xác nhận Đăng ký</button>
             </form>

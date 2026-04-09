@@ -9,6 +9,13 @@ use Illuminate\Http\Request;
 
 class LessonController extends Controller
 {
+    public function __construct()
+    {
+        if (! auth()->check() || ! auth()->user()->isAdmin()) {
+            abort(403, 'Bạn không có quyền truy cập.');
+        }
+    }
+
     // =====================================
     // DANH SÁCH BÀI HỌC (Nhóm theo khóa học)
     // =====================================

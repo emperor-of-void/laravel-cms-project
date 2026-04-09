@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
 use App\Models\Course;
-use App\Models\Student;
 use App\Models\Enrollment;
+use App\Models\Tag;
+use App\Models\Student;
 use App\Http\Requests\CourseRequest;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 
@@ -16,20 +19,67 @@ class CourseController extends Controller
     // ==========================================
     public function dashboard()
     {
+        if (! auth()->check()) {
+            return redirect()->route('login');
+        }
+
+        if (auth()->user()->isStudent()) {
+            return redirect()->route('student.courses');
+        }
+
         $totalCourses = Course::count();
         $totalStudents = Student::count();
         
-        // Tổng doanh thu (Join bảng enrollments và courses)
         $totalRevenue = Enrollment::join('courses', 'enrollments.course_id', '=', 'courses.id')
                                   ->sum('courses.price');
                                   
-        // Khóa học có nhiều học viên nhất
         $topCourse = Course::withCount('students')->orderBy('students_count', 'desc')->first();
         
-        // 5 khóa học mới nhất
         $recentCourses = Course::latest()->take(5)->get();
 
         return view('dashboard', compact('totalCourses', 'totalStudents', 'totalRevenue', 'topCourse', 'recentCourses'));
+    }
+
+    public function catalog(Request $request)
+    {
+        $query = Course::published()->with(['category', 'tags', 'lessons']);
+
+        if ($request->filled('search_title')) {
+            $query->where('title', 'like', '%' . $request->search_title . '%');
+        }
+
+        if ($request->filled('search_category')) {
+            $query->where('category_id', $request->search_category);
+        }
+
+        if ($request->filled('search_tag')) {
+            $searchTag = $request->search_tag;
+            $query->whereHas('tags', function ($query) use ($searchTag) {
+                $query->where('name', 'like', '%' . $searchTag . '%');
+            });
+        }
+
+        $courses = $query->latest()->paginate(12)->withQueryString();
+        $categories = Category::all();
+
+        return view('courses.catalog', compact('courses', 'categories'));
+    }
+
+    public function show(Course $course)
+    {
+        if (! auth()->check() || auth()->user()->isStudent()) {
+            abort_if($course->status !== 'published', 404);
+        }
+
+        $course->load(['category', 'tags', 'lessons']);
+        return view('courses.show', compact('course'));
+    }
+
+    private function ensureAdmin(): void
+    {
+        if (! auth()->check() || ! auth()->user()->isAdmin()) {
+            abort(403, 'Bạn không có quyền truy cập.');
+        }
     }
 
     // ==========================================
@@ -37,21 +87,33 @@ class CourseController extends Controller
     // ==========================================
     public function index(Request $request)
     {
-        // Yêu cầu 3.4: Tối ưu truy vấn (Fix N+1 Query) bằng with() và withCount()
-        $query = Course::with(['lessons', 'enrollments'])->withCount('lessons');
+        $this->ensureAdmin();
 
-        // Yêu cầu 3.1: Tìm kiếm nâng cao
+        $query = Course::with(['lessons', 'enrollments', 'category', 'tags'])->withCount('lessons');
+
         if ($request->filled('search_title')) {
             $query->where('title', 'like', '%' . $request->search_title . '%');
         }
+
         if ($request->filled('search_status')) {
             $query->where('status', $request->search_status);
         }
 
-        // Yêu cầu: Phân trang (paginate)
+        if ($request->filled('search_category')) {
+            $query->where('category_id', $request->search_category);
+        }
+
+        if ($request->filled('search_tag')) {
+            $searchTag = $request->search_tag;
+            $query->whereHas('tags', function ($query) use ($searchTag) {
+                $query->where('name', 'like', '%' . $searchTag . '%');
+            });
+        }
+
         $courses = $query->latest()->paginate(10);
+        $categories = Category::all();
         
-        return view('courses.index', compact('courses'));
+        return view('courses.index', compact('courses', 'categories'));
     }
 
     // ==========================================
@@ -59,7 +121,9 @@ class CourseController extends Controller
     // ==========================================
     public function create()
     {
-        return view('courses.create');
+        $this->ensureAdmin();
+        $categories = Category::all();
+        return view('courses.create', compact('categories'));
     }
 
     // ==========================================
@@ -67,15 +131,20 @@ class CourseController extends Controller
     // ==========================================
     public function store(CourseRequest $request)
     {
+        $this->ensureAdmin();
         $data = $request->validated();
         $data['slug'] = Str::slug($request->title); // Tự sinh Slug từ Title
 
-        // Xử lý upload ảnh
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('courses', 'public');
         }
 
-        Course::create($data);
+        $course = Course::create($data);
+
+        if ($request->filled('tags')) {
+            $course->tags()->sync($this->resolveTagIds($request->tags));
+        }
+
         return redirect()->route('courses.index')->with('success', 'Thêm khóa học thành công!');
     }
 
@@ -84,7 +153,9 @@ class CourseController extends Controller
     // ==========================================
     public function edit(Course $course)
     {
-        return view('courses.edit', compact('course'));
+        $this->ensureAdmin();
+        $categories = Category::all();
+        return view('courses.edit', compact('course', 'categories'));
     }
 
     // ==========================================
@@ -92,6 +163,7 @@ class CourseController extends Controller
     // ==========================================
     public function update(CourseRequest $request, Course $course)
     {
+        $this->ensureAdmin();
         $data = $request->validated();
         $data['slug'] = Str::slug($request->title);
 
@@ -100,6 +172,8 @@ class CourseController extends Controller
         }
 
         $course->update($data);
+        $course->tags()->sync($this->resolveTagIds($request->tags));
+
         return redirect()->route('courses.index')->with('success', 'Cập nhật thông tin thành công!');
     }
 
@@ -108,6 +182,7 @@ class CourseController extends Controller
     // ==========================================
     public function destroy(Course $course)
     {
+        $this->ensureAdmin();
         $course->delete(); // Sẽ thực hiện Soft Delete vì Model đã khai báo
         return redirect()->route('courses.index')->with('success', 'Đã xóa khóa học (vào thùng rác)!');
     }
@@ -117,16 +192,31 @@ class CourseController extends Controller
     // ==========================================
     public function restore($id)
     {
+        $this->ensureAdmin();
         Course::withTrashed()->where('id', $id)->restore();
         return redirect()->route('courses.index')->with('success', 'Khôi phục khóa học thành công!');
     }
+
     // ==========================================
     // HIỂN THỊ THÙNG RÁC (Các khóa học đã xóa mềm)
     // ==========================================
     public function trash()
     {
-        // Dùng onlyTrashed() để chỉ lấy những dữ liệu đã bị xóa
+        $this->ensureAdmin();
         $courses = Course::onlyTrashed()->paginate(10);
         return view('courses.trash', compact('courses'));
+    }
+
+    private function resolveTagIds(string $tags): array
+    {
+        $tagNames = array_filter(array_map('trim', explode(',', $tags)));
+
+        return collect($tagNames)->map(function ($name) {
+            return Tag::firstOrCreate([
+                'slug' => Str::slug($name),
+            ], [
+                'name' => $name,
+            ])->id;
+        })->unique()->values()->all();
     }
 }

@@ -18,7 +18,6 @@ return new class extends Migration
             $table->text('content');
             $table->string('video_url')->nullable();
             $table->integer('order')->default(0);
-            $table->softDeletes(); // Thêm dòng này để fix lỗi "deleted_at"
             $table->timestamps();
         });
     }
